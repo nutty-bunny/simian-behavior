@@ -1,3 +1,4 @@
+# attempt based descriptives 
 import pickle
 import os
 import pandas as pd 
@@ -7,9 +8,6 @@ pickle_rick = os.path.join(directory, 'data.pickle')
 
 with open(pickle_rick, 'rb') as handle:
     data = pickle.load(handle)
-
-print("Loaded data:")
-print(data.keys())
 
 rhesus = []
 tonkean = []
@@ -56,9 +54,9 @@ for species, monkeys in data.items():
         print(tonkean_df.to_string(index=False))
     
     print(f"\n{species.capitalize()} Species-Level Descriptives")
-    print(f"min duration: {min_duration_species} s")
-    print(f"max duration: {max_duration_species} s")
-    print(f"mean duration: {mean_duration_species} s")
+    print(f"min duration: {min_duration_species} ms")
+    print(f"max duration: {max_duration_species} ms")
+    print(f"mean duration: {mean_duration_species} ms")
 
 min_duration = min(durations) if durations else 0
 max_duration = max(durations) if durations else 0
@@ -68,3 +66,4 @@ print("\nOverall Statistics Across Both Species")
 print(f"min duration: {min_duration} s")
 print(f"max duration: {max_duration} s")
 print(f"mean duration: {mean_duration} s")
+

@@ -1,3 +1,4 @@
+# session based stats 
 import pickle
 import os
 import pandas as pd 
@@ -112,3 +113,28 @@ print(f"max count: {max_count}")
 print(f"mean count: {mean_count:.0f}")
 print(f"mode count: {mode_count}")
 
+tonkean_proportions = []
+
+for name, data_dict in data['tonkean'].items():
+    attempts = data_dict['attempts']
+    
+    sessions_grouped = attempts.groupby('session')
+    for session, session_data in sessions_grouped:
+        total_attempts = len(session_data)
+        
+        outcome_counts = session_data['result'].value_counts().to_dict()
+        
+        proportions = {
+            'monkey': name,
+            'session': session,
+            'p_success': outcome_counts.get('success', 0.0) / total_attempts,
+            'p_error': outcome_counts.get('error', 0.0) / total_attempts,
+            'p_omission': outcome_counts.get('stepomission', 0.0) / total_attempts,
+            'p_premature': outcome_counts.get('prematured', 0.0) / total_attempts
+        }
+        
+        tonkean_proportions.append(proportions)
+
+# Convert to DataFrame for easier analysis and display
+tonkean_proportions_df = pd.DataFrame(tonkean_proportions)
+print(tonkean_proportions_df)
