@@ -5,11 +5,11 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import matplotlib.dates as mdates
-
+import numpy as np
 # ** re-run this sscript once pickle rick is finalised! **
 directory = Path('/Users/similovesyou/Desktop/qts/simian-behavior/data/py')
-pickle_rick = os.path.join(directory, 'data.pickle')
-with open(pickle_rick, 'rb') as handle:
+dmt_rick = os.path.join(directory, 'dms.pickle')
+with open(dmt_rick, 'rb') as handle:
     data = pickle.load(handle)
 
 hierarchy_file = os.path.join(directory, 'hierarchy/tonkean_elo.xlsx')
@@ -91,7 +91,6 @@ for species, species_data in data.items():
                 elo[name] = filtered_hierarchy[['Date', name]].dropna() # drop NaNs where there is no hierarchy assessment
             
             if name not in elo or elo[name].empty: # skip monkeys with no hierarchy data (there's two of 'em)
-                print(f"Monkey {name} has no ELO data. Task period: {first_attempt} to {last_attempt}. No ELO data available.")
                 continue
             
             first_elo = elo[name]['Date'].min()
@@ -99,10 +98,6 @@ for species, species_data in data.items():
             
             new_start_date = max(first_attempt, first_elo) # overall onset that aligns with available elo 
             new_end_date = min(last_attempt, last_elo) # overall offset that aligns too 
-            
-            if new_start_date > new_end_date:  # Check if there's no overlap between the periods
-                print(f"Monkey {name} has no overlapping periods. Task period: {first_attempt} to {last_attempt}. ELO period: {first_elo} to {last_elo}.")
-                continue
             
             # only include attempts that fall within the elo timeframe (using the newly defined new_start_date and new_end_date)
             filtered_attempts = attempts[(attempts['instant_begin'].dt.date >= new_start_date) & (attempts['instant_end'].dt.date <= new_end_date)]
@@ -185,9 +180,9 @@ tonkean_table_elo_file = directory / 'hierarchy/tonkean_table_elo.xlsx'
 tonkean_table_elo.to_excel(tonkean_table_elo_file, index=False)
 
 directory = '/Users/similovesyou/Desktop/qts/simian-behavior/data/py'
-pickle_rick = os.path.join(directory, 'data.pickle')
+dmt_rick = os.path.join(directory, 'data.pickle')
 
-with open(pickle_rick, 'rb') as handle:
+with open(dmt_rick, 'rb') as handle:
     data = pickle.load(handle)
 
 data = {key: data[key] for key in ['rhesus', 'tonkean']}
@@ -426,11 +421,6 @@ ax2.set_xlabel('Date', fontsize=14, fontname='Times New Roman')
 plt.tight_layout()
 plt.show()
 
-
-# Define save path for SVGs
-save_directory = Path("/Users/similovesyou/Desktop/qts/simian-behavior/plots/roll-up/")
-save_directory.mkdir(parents=True, exist_ok=True)  # Ensure the directory exists
-
 unique_monkeys = tonkean_proportions_df['monkey'].unique()
 
 for monkey in unique_monkeys:
@@ -458,6 +448,10 @@ for monkey in unique_monkeys:
     # Combine smoothed values into a DataFrame
     stacked_df = monkey_df[['p_success_smoothed', 'p_error_smoothed', 'p_premature_smoothed', 'p_omission_smoothed']].dropna()
     stacked_df = stacked_df.div(stacked_df.sum(axis=1), axis=0)
+    
+    # Renormalize to ensure proportions sum to 1
+    # stacked_df['proportions_sum'] = stacked_df.sum(axis=1)
+    # assert all(abs(stacked_df['proportions_sum'] - 1) < 1e-5), "Proportions do not sum to 1!"
     
     # Filter hierarchy data for the current monkey
     hierarchy_monkey_df = elo[monkey]
@@ -516,28 +510,22 @@ for monkey in unique_monkeys:
     # Set dynamic x-axis limits and date format
     ax2.set_xlim(hierarchy_monkey_df['Date'].min(), hierarchy_monkey_df['Date'].max())
     
-    # Use appropriate date format based on range
-    date_range_days = (hierarchy_monkey_df['Date'].max() - hierarchy_monkey_df['Date'].min()).days
-    if date_range_days > 365:
-        ax2.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))  # Year only
-    else:
-        ax2.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))  # Year-Month
-
+    
     ax2.xaxis.set_major_locator(mdates.AutoDateLocator(maxticks=5))  # Adjust tick density dynamically
     
     ax2.set_ylabel('Elo', fontsize=14, fontname='Times New Roman')
     ax2.set_xlabel('Date', fontsize=14, fontname='Times New Roman')
     
+        
+    ax2.plot(range(1, len(hierarchy_monkey_df) + 1), rolling_avg, color='#FFD700', linewidth=2)
+    ax2.set_xlabel('Session Count', fontsize=14, fontname='Times New Roman')
     plt.tight_layout()
-
-    # Save as SVG
-    save_path = save_directory / f"{monkey}_stacked_proportions_hierarchy_Rw40_no10.svg"
-    plt.savefig(save_path, format='svg')
-
+    save_path = f'/Users/similovesyou/Downloads/{monkey}_stacked_proportions_hierarchy_Rw40_no10.png'
+    # plt.savefig(save_path, format='png')
+    
     plt.show()
 
-# Print updated elo mean scores
-for index, row in tonkean_table_elo.iterrows():
-    name = row['name']
-    elo_mean = row['elo_mean']
-    print(f"Monkey: {name}, Elo Mean: {elo_mean}")
+    for index, row in tonkean_table_elo.iterrows():
+        name = row['name']
+        elo_mean = row['elo_mean']
+        print(f"Monkey: {name}, Elo Mean: {elo_mean}")

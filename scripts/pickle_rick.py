@@ -380,7 +380,7 @@ for result in rts_by_result.keys():
 """
 
 # classify rts for successes and errors as premature if they fall under 150 ms (or other threshold)
-premature_threshold = 150 # ms (or other threshold)
+premature_threshold = 50 # ms (or other threshold)
 
 # iterate and reclassify premature attempts
 for species, monkeys in data.items():

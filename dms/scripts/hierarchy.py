@@ -8,8 +8,8 @@ import warnings  # they annoy me
 
 # re-run script after cleaning pickle rick 
 directory = '/Users/similovesyou/Desktop/qts/simian-behavior/data/py' # string
-pickle_rick = os.path.join(directory, 'data.pickle')
-with open(pickle_rick, 'rb') as handle:
+dmt_rick = os.path.join(directory, 'dms.pickle')
+with open(dmt_rick, 'rb') as handle:
     data = pickle.load(handle)
 
 # load tonkean_table_elo that's been aligned with elo-rating period (see social_status_bby.py) 
@@ -17,7 +17,7 @@ tonkean_table_elo = pd.read_excel(os.path.join(directory, 'hierarchy', 'tonkean_
 
 # note 2 simi -- proportions differ bcuz the task period has been shortened 
 print()
-print("macaca tonkeana (n = 35) incl. elo")
+print("macaca tonkeana (n = 33) incl. elo")
 print(tonkean_table_elo)
 
 # let's append demographics 
@@ -43,83 +43,30 @@ print(tonkean_table_elo)
 plt.rcParams['font.family'] = 'Arial' # set global font to be used across all plots ^^ **change later**
 sns.set(style="whitegrid", font_scale=1.2, rc={"font.family": "arial"})  # ** modify font selection here! **
 
-# plotting proportions across the lifespan
-def p_lifespan(ax, metric, title, data, colors, show_xlabel, show_ylabel):
-    sns.scatterplot(ax=ax, data=data[data['gender'] == 1], x='age', y=metric, facecolors='none', edgecolor='purple', s=100, linewidth=1)  # Modified color
-    sns.scatterplot(ax=ax, data=data[data['gender'] == 2], x='age', y=metric, color=colors['tonkean'], s=80, alpha=0.6, edgecolor='purple', linewidth=1)  # Modified size
-
-    sns.regplot(ax=ax, data=data, x='age', y=metric, color=colors['tonkean'], order=2, scatter=False, ci=None, line_kws={'linestyle': '--'})  # Quadratic fit 
-
-    ax.set_title(title, fontsize=20, fontweight='bold', fontname='Times New Roman')  # Subtitle styling
-    ax.set_ylim(0, 1)
-    ax.set_xlim(0, 25)
-    ax.set_xticks(range(0, 26, 5))
-    ax.set_yticks([0, 0.2, 0.4, 0.6, 0.8, 1])
-    ax.set_yticklabels(['0', '', '', '', '', '1'])  # Only retain ticks 0 and 1
-    ax.grid(True, which='both', linestyle='--')
-    ax.grid(True, which='major', axis='x')
-    if show_xlabel:
-        ax.set_xlabel('Age', fontsize=14)  # Updated font size
-    else:
-        ax.set_xticklabels([])
-        ax.set_xlabel('')
-    if show_ylabel:
-        ax.set_ylabel('Proportion', fontsize=14)  # Updated font size
-    else:
-        ax.set_yticklabels([])
-        ax.set_ylabel('')
-
-fig, axes = plt.subplots(2, 2, figsize=(16, 12))
-colors = {'tonkean': 'purple'}
-metrics = ['p_success', 'p_error', 'p_premature', 'p_omission']
-titles = ['Hits', 'Errors', 'Premature', 'Omissions']  # Updated subtitles
-
-for ax, metric, title, show_xlabel, show_ylabel in zip(axes.flatten(), metrics, titles, [False, False, True, True], [True, False, True, False]):
-    p_lifespan(ax, metric, title, tonkean_table_elo, colors, show_xlabel, show_ylabel)
-
-# Legend
-handles = [
-    plt.Line2D([], [], color=colors['tonkean'], marker='o', linestyle='None', markersize=8, label=r'$\it{Macaca\ tonkeana}$ (f)'),
-    plt.Line2D([], [], color='none', marker='o', markeredgecolor='purple', linestyle='None', markersize=8, label=r'$\it{Macaca\ tonkeana}$ (m)')
-]
-
-fig.legend(handles=handles, loc='lower center', bbox_to_anchor=(0.5, -0.1), ncol=4)
-
-fig.suptitle('Simian Success: How well do they play?', fontsize=25, fontweight='bold', fontname='Times New Roman', color='purple')  # Updated main title
-
-# Adjust placements and save as png
-plt.tight_layout(rect=[0, 0.02, 1, 0.93])  # Reduced top margin
-# plt.savefig('/Users/similovesyou/Downloads/Simian_Success.png', format='png')  # Save as png
-plt.show()
-import matplotlib.pyplot as plt
-import seaborn as sns
-import pandas as pd
-from matplotlib.colors import LinearSegmentedColormap
-
-def p_lifespan(ax, metric, title, data, show_xlabel, show_ylabel):
+def p_lifespan(ax, metric, title, data, show_xlabel, show_ylabel, show_colorbar):
     # Scale elo_mean to use as point sizes
-    min_size = 50  
+    min_size = 50  # Increased dot sizes
     max_size = 300
     sizes = ((data['elo_mean'] - data['elo_mean'].min()) / (data['elo_mean'].max() - data['elo_mean'].min())) * (max_size - min_size) + min_size
     
-    # Even softer colormap: starts more pale
-    custom_purple = LinearSegmentedColormap.from_list("custom_purple", ["#F0E6F6", "#D8BFD8", "#800080", "#9932CC"])
+    # Get color mapping from elo_mean
+    cmap = plt.get_cmap('plasma')
     norm = plt.Normalize(data['elo_mean'].min(), data['elo_mean'].max())
     
-    # Split by gender
+    # Plot data with sizes based on elo_mean
     male_data = data[data['gender'] == 1]
     female_data = data[data['gender'] == 2]
 
     scatter_male = ax.scatter(male_data['age'], male_data[metric], 
-                              c='none',  
-                              edgecolors=custom_purple(norm(male_data['elo_mean'])),
+                              c='none',  # Hollow centers
+                              edgecolors=cmap(norm(male_data['elo_mean'])),
                               s=sizes[data['gender'] == 1], linewidth=1.5)
     scatter_female = ax.scatter(female_data['age'], female_data[metric], 
-                                c=female_data['elo_mean'], cmap=custom_purple, s=sizes[data['gender'] == 2], 
+                                c=female_data['elo_mean'], cmap='plasma', s=sizes[data['gender'] == 2], 
                                 linewidth=1.5, edgecolors='face')
     
-    # Add regression line using the SAME purple as before
-    sns.regplot(ax=ax, data=data, x='age', y=metric, color='#800080', order=2, scatter=False, ci=None, line_kws={'linestyle': '--'})
+    # Add regression line
+    sns.regplot(ax=ax, data=data, x='age', y=metric, color='purple', order=2, scatter=False, ci=None, line_kws={'linestyle': '--'})
 
     # Set title and limits
     ax.set_title(title, fontsize=20, fontweight='bold', fontname='Times New Roman')
@@ -127,14 +74,9 @@ def p_lifespan(ax, metric, title, data, show_xlabel, show_ylabel):
     ax.set_xlim(0, 25)
     ax.set_xticks(range(0, 26, 5))
     ax.set_yticks([0, 0.2, 0.4, 0.6, 0.8, 1])
-    ax.set_yticklabels(['0', '', '', '', '', '1'])  
+    ax.set_yticklabels(['0', '', '', '', '', '1'])  # Only retain ticks 0 and 1
     ax.grid(True, which='both', linestyle='--')
     ax.grid(True, which='major', axis='x')
-    
-    # Keep thick tick marks but default axis thickness
-    ax.spines['bottom'].set_linewidth(1)  
-    ax.spines['left'].set_linewidth(1)    
-    ax.tick_params(axis='both', which='major', width=2.5, length=7)  
     
     # Show or hide x and y labels
     if show_xlabel:
@@ -147,59 +89,60 @@ def p_lifespan(ax, metric, title, data, show_xlabel, show_ylabel):
     else:
         ax.set_yticklabels([])
         ax.set_ylabel('')
+   
+    # Only show colorbar on the right subplots
+    if show_colorbar:
+        cbar = plt.colorbar(plt.cm.ScalarMappable(norm=norm, cmap='plasma'), ax=ax)
+        cbar.set_label('Elo Mean', fontsize=14)
 
 # Create subplots and plot data
-fig, axes = plt.subplots(1, 4, figsize=(20, 6))  
+fig, axes = plt.subplots(2, 2, figsize=(16, 12))
 metrics = ['p_success', 'p_error', 'p_premature', 'p_omission']
 titles = ['Hits', 'Errors', 'Premature', 'Omissions']
 
-for ax, metric, title, show_xlabel, show_ylabel in zip(
-        axes, metrics, titles, [True] * 4, [True] + [False] * 3):  
-    p_lifespan(ax, metric, title, tonkean_table_elo, show_xlabel, show_ylabel)
+for ax, metric, title, show_xlabel, show_ylabel, show_colorbar in zip(
+        axes.flatten(), metrics, titles, 
+        [False, False, True, True], [True, False, True, False], [False, True, False, True]):
+    p_lifespan(ax, metric, title, tonkean_table_elo, show_xlabel, show_ylabel, show_colorbar)
 
 # Legend
 handles = [
-    plt.Line2D([], [], color='#800080', marker='o', linestyle='None', markersize=10, label=r'$\it{Macaca\ tonkeana}$ (f)'),
-    plt.Line2D([], [], color='none', marker='o', markeredgecolor='#800080', linestyle='None', markersize=10, label=r'$\it{Macaca\ tonkeana}$ (m)')
+    plt.Line2D([], [], color='purple', marker='o', linestyle='None', markersize=10, label=r'$\it{Macaca\ tonkeana}$ (f)'),
+    plt.Line2D([], [], color='none', marker='o', markeredgecolor='purple', linestyle='None', markersize=10, label=r'$\it{Macaca\ tonkeana}$ (m)')
 ]
 
 fig.legend(handles=handles, loc='lower center', bbox_to_anchor=(0.5, -0.1), ncol=2)
 
-fig.suptitle('Simian Success: How well do they play? (Incl. Elo-Rating)', fontsize=25, fontweight='bold', fontname='Times New Roman', color='#800080')
+fig.suptitle('Simian Success: How well do they play? (Incl. Elo-Rating)', fontsize=25, fontweight='bold', fontname='Times New Roman', color='purple')
 
-# Adjust layout and save as SVG
+# Adjust layout and save as png
 plt.tight_layout(rect=[0, 0.02, 1, 0.93])
-save_path = "/Users/similovesyou/Desktop/qts/simian-behavior/plots/simian_success_elo.svg"
-plt.savefig(save_path, format='svg')
-
+plt.savefig('/Users/similovesyou/Downloads/accuracy_elo.png', format='png')
 plt.show()
 
 def rt_hierarchy(ax, metric, title, data, show_xlabel, show_ylabel, show_colorbar):
     # Scale elo_mean to use as point sizes
-    min_size = 50  
+    min_size = 50  # Dot size range
     max_size = 300
     sizes = ((data['elo_mean'] - data['elo_mean'].min()) / (data['elo_mean'].max() - data['elo_mean'].min())) * (max_size - min_size) + min_size
     
-    # Custom purple colormap (lighter to darker purple)
-    custom_purple = LinearSegmentedColormap.from_list("custom_purple", ["#F0E6F6", "#D8BFD8", "#800080", "#9932CC"])
+    # Color mapping for Elo
+    cmap = plt.get_cmap('plasma')
     norm = plt.Normalize(data['elo_mean'].min(), data['elo_mean'].max())
-
-    # Adjust very low values to slightly sit on the x-axis
-    y_values = np.where(data[metric] < 0.02, 0.02, data[metric])  
-
-    # Split by gender
+    
+    # Plot male and female with hierarchy mapping
     male_data = data[data['gender'] == 1]
     female_data = data[data['gender'] == 2]
 
-    ax.scatter(male_data['age'], y_values[data['gender'] == 1], 
-               c='none', edgecolors=custom_purple(norm(male_data['elo_mean'])),
+    ax.scatter(male_data['age'], male_data[metric], 
+               c='none', edgecolors=cmap(norm(male_data['elo_mean'])),
                s=sizes[data['gender'] == 1], linewidth=1.5, label='Male')
-    ax.scatter(female_data['age'], y_values[data['gender'] == 2], 
-               c=female_data['elo_mean'], cmap=custom_purple,
+    ax.scatter(female_data['age'], female_data[metric], 
+               c=female_data['elo_mean'], cmap='plasma',
                s=sizes[data['gender'] == 2], edgecolors='face', label='Female')
     
     # Regression line
-    sns.regplot(ax=ax, data=data, x='age', y=metric, color='#800080', order=2, scatter=False, ci=None, line_kws={'linestyle': '--'})
+    sns.regplot(ax=ax, data=data, x='age', y=metric, color='purple', order=2, scatter=False, ci=None, line_kws={'linestyle': '--'})
     
     # Titles and formatting
     ax.set_title(title, fontsize=20, fontweight='bold', fontname='Times New Roman')
@@ -215,30 +158,28 @@ def rt_hierarchy(ax, metric, title, data, show_xlabel, show_ylabel, show_colorba
     else:
         ax.set_ylabel('')
     
+    # Add colorbar for Elo rating only on the right plot
+    if show_colorbar:
+        cbar = plt.colorbar(plt.cm.ScalarMappable(norm=norm, cmap='plasma'), ax=ax)
+        cbar.set_label('Elo Rating', fontsize=14)
 
-# Create subplots and plot data
-fig, axes = plt.subplots(1, 2, figsize=(16, 7))
+# Apply to both `rt_success` and `rt_error`
+fig, axes = plt.subplots(1, 2, figsize=(16, 8))
 metrics = ['rt_success', 'rt_error']
-titles = ['Hits', 'Errors']
+titles = ['Hits', 
+          'Errors']
 
 for ax, metric, title, show_xlabel, show_ylabel, show_colorbar in zip(
         axes.flatten(), metrics, titles, 
-        [True, True], [True, True], [False, True]):  # Only the right plot gets the colorbar
+        [True, True], [True, True], [False, True]):  # Only last plot gets the colorbar
     rt_hierarchy(ax, metric, title, tonkean_table_elo, show_xlabel, show_ylabel, show_colorbar)
 
-fig.suptitle('How Fast Are They? (Incl. Elo-Score)', fontsize=25, fontweight='bold', fontname='Times New Roman', color='#800080')
+fig.suptitle('How Fast Are They? (Incl. Elo-Score)', fontsize=25, fontweight='bold', fontname='Times New Roman', color='purple')
 plt.tight_layout(rect=[0, 0, 1, 0.95])
-
-# Save as SVG
-save_path = "/Users/similovesyou/Desktop/qts/simian-behavior/plots/tonkean_rt_hierarchy.svg"
-plt.savefig(save_path, format='svg')
+plt.savefig('/Users/similovesyou/Downloads/Tonkean_RT_Hierarchy.png', format='png')
+# plt.savefig('/Users/similovesyou/Downloads/Tonkean_RT_Hierarchy.svg', format='svg')
 
 plt.show()
-
-output_excel_path = os.path.join(directory, 'hierarchy/tonkean_task_demographics.xlsx')
-tonkean_table_elo.to_excel(output_excel_path, index=False)
-print(f"Table saved to {output_excel_path}")
-
 
 # i dont think this is necessary if im doing mvap
 

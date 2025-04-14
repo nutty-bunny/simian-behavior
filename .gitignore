@@ -1,6 +1,7 @@
 # Ignore me 
 /data/
 *.log
+/not_me/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
